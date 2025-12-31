@@ -7,8 +7,7 @@ from PIL import ImageFont
 with open("script.txt") as f:
     text = f.read()
 
-audio = AudioFileClip("voice.wav")
-
+audio = AudioFileClip("voice/male.wav")
 clips = []
 duration_per_image = audio.duration / 6
 
