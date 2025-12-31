@@ -18,7 +18,7 @@ with open("script.txt", "r", encoding="utf-8") as f:
 # --------------------------------------------------
 # LOAD AUDIO
 # --------------------------------------------------
-audio = AudioFileClip("voice/male.wav")
+audio = AudioFileClip("voices/male.wav")
 
 # --------------------------------------------------
 # SETTINGS
