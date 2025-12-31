@@ -11,14 +11,14 @@ audio = AudioFileClip("voices/male.wav")
 clips = []
 duration_per_image = audio.duration / 6
 
-for i in range(6):
-    img = (
-        ImageClip(f"images/{i}.jpg")
-        .resize(height=1920)
-        .crop(x_center=540, width=1080)
-        .set_duration(duration_per_image)
-        .fx(vfx.zoom_in, 1.05)
-    )
+img = (
+    ImageClip(f"images/{i}.jpg")
+    .resize(height=1920)
+    .crop(x_center=540, width=1080)
+    .set_duration(duration_per_image)
+    .resize(lambda t: 1 + 0.05 * t / duration_per_image)
+)
+
     clips.append(img)
 
 video = concatenate_videoclips(clips, method="compose")
