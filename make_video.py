@@ -1,26 +1,46 @@
 import os
 os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
+
 from moviepy.editor import *
-from PIL import Image, ImageDraw, ImageFont
-
-W, H = 1080, 1920
-
-img = Image.new("RGB", (W, H), "black")
-draw = ImageDraw.Draw(img)
-font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64)
+from PIL import ImageFont
 
 with open("script.txt") as f:
     text = f.read()
 
-draw.multiline_text((100, 500), text, fill="white", font=font, spacing=20)
+audio = AudioFileClip("voice.wav")
 
-img.save("frame.png")
+clips = []
+duration_per_image = audio.duration / 6
 
-audio = AudioFileClip("voice.mp3")
-video = ImageClip("frame.png").set_duration(audio.duration)
-video = video.set_audio(audio)
+for i in range(6):
+    img = (
+        ImageClip(f"images/{i}.jpg")
+        .resize(height=1920)
+        .crop(x_center=540, width=1080)
+        .set_duration(duration_per_image)
+        .fx(vfx.zoom_in, 1.05)
+    )
+    clips.append(img)
 
-video.write_videofile(
+video = concatenate_videoclips(clips, method="compose")
+
+subtitle = (
+    TextClip(
+        text,
+        fontsize=48,
+        color="white",
+        font="DejaVu-Sans-Bold",
+        method="caption",
+        size=(900, None),
+        align="center"
+    )
+    .set_position(("center", "center"))
+    .set_duration(audio.duration)
+)
+
+final = CompositeVideoClip([video, subtitle]).set_audio(audio)
+
+final.write_videofile(
     "output.mp4",
     fps=30,
     codec="libx264",
