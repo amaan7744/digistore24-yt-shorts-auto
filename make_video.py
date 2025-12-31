@@ -1,10 +1,13 @@
+import os
+os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
+
 from moviepy.editor import (
     ImageClip,
     AudioFileClip,
     CompositeVideoClip,
-    concatenate_videoclips,
-    TextClip
+    concatenate_videoclips
 )
+from PIL import Image, ImageDraw, ImageFont
 
 # --------------------------------------------------
 # LOAD SCRIPT
@@ -13,59 +16,63 @@ with open("script.txt", "r", encoding="utf-8") as f:
     text = f.read().strip()
 
 # --------------------------------------------------
-# LOAD AUDIO (PRE-GENERATED VOICE)
+# LOAD AUDIO
 # --------------------------------------------------
-audio = AudioFileClip("voices/male.wav")
+audio = AudioFileClip("voice/male.wav")
 
 # --------------------------------------------------
-# VIDEO SETTINGS
+# SETTINGS
 # --------------------------------------------------
 WIDTH = 1080
 HEIGHT = 1920
 IMAGE_COUNT = 6
 DURATION_PER_IMAGE = audio.duration / IMAGE_COUNT
 
+FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT_SIZE = 48
+
 clips = []
 
 # --------------------------------------------------
-# BUILD IMAGE SEQUENCE WITH SLOW ZOOM
+# BUILD FRAMES WITH PIL SUBTITLES
 # --------------------------------------------------
 for i in range(IMAGE_COUNT):
-    img = (
-        ImageClip(f"images/{i}.jpg")
-        .resize(height=HEIGHT)
-        .crop(x_center=WIDTH // 2, width=WIDTH)
+    img_path = f"images/{i}.jpg"
+
+    base = Image.open(img_path).convert("RGB")
+    base = base.resize((WIDTH, HEIGHT))
+
+    draw = ImageDraw.Draw(base)
+    font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
+
+    text_w, text_h = draw.multiline_textsize(text, font=font)
+    x = (WIDTH - text_w) // 2
+    y = (HEIGHT - text_h) // 2
+
+    draw.multiline_text(
+        (x, y),
+        text,
+        font=font,
+        fill="white",
+        align="center"
+    )
+
+    frame_path = f"frame_{i}.png"
+    base.save(frame_path)
+
+    clip = (
+        ImageClip(frame_path)
         .set_duration(DURATION_PER_IMAGE)
         .resize(lambda t: 1 + 0.05 * t / DURATION_PER_IMAGE)
     )
-    clips.append(img)
+
+    clips.append(clip)
 
 # --------------------------------------------------
-# CONCAT IMAGES
+# CONCAT + AUDIO
 # --------------------------------------------------
-background = concatenate_videoclips(clips, method="compose")
-
-# --------------------------------------------------
-# SUBTITLE (CENTERED, SMALL, READABLE)
-# --------------------------------------------------
-subtitle = (
-    TextClip(
-        text,
-        fontsize=48,
-        font="DejaVu-Sans-Bold",
-        color="white",
-        method="caption",
-        size=(900, None),
-        align="center"
-    )
-    .set_position(("center", "center"))
-    .set_duration(audio.duration)
-)
-
-# --------------------------------------------------
-# FINAL COMPOSITION
-# --------------------------------------------------
-final = CompositeVideoClip([background, subtitle]).set_audio(audio)
+video = concatenate_videoclips(clips, method="compose")
+final = video.set_audio(audio)
 
 # --------------------------------------------------
 # EXPORT
