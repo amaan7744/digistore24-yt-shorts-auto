@@ -1,5 +1,5 @@
-moviepy
-pillow
+moviepy==1.0.3
+Pillow
 gTTS
 google-api-python-client
 google-auth
