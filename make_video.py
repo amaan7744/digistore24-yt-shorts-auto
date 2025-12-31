@@ -14,7 +14,7 @@ draw.multiline_text((100, 500), text, fill="white", font=font, spacing=20)
 
 img.save("frame.png")
 
-audio = AudioFileClip("voice.wav")
+audio = AudioFileClip("voice.mp3")
 video = ImageClip("frame.png").set_duration(audio.duration)
 video = video.set_audio(audio)
 
