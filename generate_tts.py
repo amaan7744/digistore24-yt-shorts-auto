@@ -1,8 +1,7 @@
-from TTS.api import TTS
+from gtts import gTTS
 
-tts = TTS("tts_models/en/ljspeech/tacotron2-DDC")
-
-with open("script.txt") as f:
+with open("script.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
-tts.tts_to_file(text=text, file_path="voice.wav")
+tts = gTTS(text=text, lang="en", slow=False)
+tts.save("voice.mp3")
