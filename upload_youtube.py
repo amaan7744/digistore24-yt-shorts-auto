@@ -1,11 +1,7 @@
 import os
-import json
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from googleapiclient.http import MediaFileUpload
-
-with open("products.json") as f:
-    product = json.load(f)[0]
 
 creds = Credentials(
     None,
@@ -18,20 +14,15 @@ creds = Credentials(
 
 youtube = build("youtube", "v3", credentials=creds)
 
-request = youtube.videos().insert(
+youtube.videos().insert(
     part="snippet,status",
     body={
         "snippet": {
-            "title": "Why most people stay stuck",
-            "description": f"""This is not motivation.
-This is a real system beginners use.
-
-👉 {product['affiliate_link']}""",
+            "title": "Quiet work beats loud dreams",
+            "description": "Build silently.\n\nLink below.",
             "categoryId": "22"
         },
         "status": {"privacyStatus": "public"}
     },
     media_body=MediaFileUpload("output.mp4")
-)
-
-request.execute()
+).execute()
