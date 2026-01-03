@@ -35,7 +35,7 @@ jobs:
           fetch-depth: 0
 
       # ----------------------------------------------------
-      # FREE DISK SPACE (CRITICAL)
+      # FREE DISK SPACE
       # ----------------------------------------------------
       - name: Free disk space
         run: |
@@ -56,7 +56,7 @@ jobs:
           python-version: "3.10"
 
       # ----------------------------------------------------
-      # SYSTEM + PYTHON DEPENDENCIES
+      # INSTALL DEPENDENCIES
       # ----------------------------------------------------
       - name: Install dependencies
         run: |
@@ -66,7 +66,7 @@ jobs:
           pip install --no-cache-dir -r requirements.txt
 
       # ----------------------------------------------------
-      # GENERATE SCRIPT (AI)
+      # GENERATE SCRIPT
       # ----------------------------------------------------
       - name: Generate script
         env:
@@ -78,11 +78,11 @@ jobs:
           test -f image_prompts.json
 
       # ----------------------------------------------------
-      # FETCH IMAGES
+      # FETCH IMAGES (FIXED SECRET)
       # ----------------------------------------------------
       - name: Fetch images
         env:
-          PEXELS_KEY: ${{ secrets.PEXELS_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         run: |
           set -euo pipefail
           python image_fetch.py
@@ -116,7 +116,7 @@ jobs:
           test -f video_raw.mp4
 
       # ----------------------------------------------------
-      # FINAL RENDER (SHORTS READY)
+      # FINAL RENDER
       # ----------------------------------------------------
       - name: Final render
         run: |
