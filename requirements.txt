@@ -18,6 +18,8 @@ TTS==0.22.0
 torch>=2.0.0
 torchaudio>=2.0.0
 torchvision>=0.15.0
+transformers==4.39.3
+
 
 # -----------------------------
 # Audio processing
