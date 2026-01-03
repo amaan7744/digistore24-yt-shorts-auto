@@ -1,0 +1,162 @@
+name: Auto YouTube Shorts – Motivation (STABLE)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 15 runs per day (UTC)
+    - cron: "0 0,1,2,3,4,6,8,10,12,14,16,18,20,22 * * *"
+
+concurrency:
+  group: yt-shorts-auto
+  cancel-in-progress: true
+
+jobs:
+  build-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    permissions:
+      contents: write
+
+    env:
+      HF_HOME: /tmp/huggingface
+      TRANSFORMERS_CACHE: /tmp/huggingface
+      TORCH_HOME: /tmp/torch
+      PIP_NO_CACHE_DIR: "1"
+      COQUI_TOS_AGREED: "1"
+
+    steps:
+      # ----------------------------------------------------
+      # CHECKOUT
+      # ----------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ----------------------------------------------------
+      # FREE DISK SPACE (CRITICAL)
+      # ----------------------------------------------------
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h
+
+      # ----------------------------------------------------
+      # PYTHON
+      # ----------------------------------------------------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # ----------------------------------------------------
+      # SYSTEM + PYTHON DEPENDENCIES
+      # ----------------------------------------------------
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg jq
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+
+      # ----------------------------------------------------
+      # GENERATE SCRIPT (AI)
+      # ----------------------------------------------------
+      - name: Generate script
+        env:
+          GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
+        run: |
+          set -euo pipefail
+          python script_generate.py
+          test -f script.txt
+          test -f image_prompts.json
+
+      # ----------------------------------------------------
+      # FETCH IMAGES
+      # ----------------------------------------------------
+      - name: Fetch images
+        env:
+          PEXELS_KEY: ${{ secrets.PEXELS_KEY }}
+        run: |
+          set -euo pipefail
+          python image_fetch.py
+          test -d frames
+
+      # ----------------------------------------------------
+      # GENERATE TTS
+      # ----------------------------------------------------
+      - name: Generate narration
+        run: |
+          set -euo pipefail
+          python tts_generate.py --output final_audio.wav
+          test -f final_audio.wav
+
+      # ----------------------------------------------------
+      # BUILD SUBTITLES
+      # ----------------------------------------------------
+      - name: Build subtitles
+        run: |
+          set -euo pipefail
+          python subtitles_build.py
+          test -f subs.ass
+
+      # ----------------------------------------------------
+      # BUILD VIDEO
+      # ----------------------------------------------------
+      - name: Build video
+        run: |
+          set -euo pipefail
+          python video_build.py final_audio.wav
+          test -f video_raw.mp4
+
+      # ----------------------------------------------------
+      # FINAL RENDER (SHORTS READY)
+      # ----------------------------------------------------
+      - name: Final render
+        run: |
+          set -euo pipefail
+          ffmpeg -y \
+            -i video_raw.mp4 \
+            -i final_audio.wav \
+            -vf "ass=subs.ass,scale=1080:1920:flags=lanczos" \
+            -map 0:v -map 1:a \
+            -c:v libx264 \
+            -pix_fmt yuv420p \
+            -preset fast \
+            -crf 18 \
+            -movflags +faststart \
+            -c:a aac \
+            -b:a 192k \
+            output.mp4
+          test -f output.mp4
+
+      # ----------------------------------------------------
+      # UPLOAD TO YOUTUBE
+      # ----------------------------------------------------
+      - name: Upload to YouTube
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          YT_CHANNEL_ID: ${{ secrets.YT_CHANNEL_ID }}
+        run: |
+          set -euo pipefail
+          python youtube_upload.py
+
+      # ----------------------------------------------------
+      # ARTIFACT BACKUP
+      # ----------------------------------------------------
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-short
+          path: |
+            output.mp4
+            script.txt
+            subs.ass
